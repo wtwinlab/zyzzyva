@@ -1,62 +1,42 @@
 #!/bin/bash
 # run_experiment.sh - Run a Zyzzyva experiment with specified parameters
 
-set -e
+set -x
 
 # Default configuration
-F=${F:-1}
+F=${1:-1}
 N=$((3*F+1))
-CLIENTS=${CLIENTS:-1}
-RUNTIME=${RUNTIME:-60}
-BATCH_SIZE=${BATCH_SIZE:-10}
-REQUEST_RATE=${REQUEST_RATE:-100}
-PAYLOAD_SIZE=${PAYLOAD_SIZE:-64}
-IP_PREFIX=${IP_PREFIX:-"127.0.0.1"}
-VERBOSE=${VERBOSE:-false}
+CLIENTS=${2:-1}
+REQUEST_RATE=${3:-100}
+BATCH_SIZE=${4:-10}
+PAYLOAD_SIZE=${5:-64}
+RUNTIME=${6:-60}
+IP_PREFIX="127.0.0.1"
 
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        -f|--faults)
-            F="$2"
-            N=$((3*F+1))
-            shift 2
-            ;;
-        -c|--clients)
-            CLIENTS="$2"
-            shift 2
-            ;;
-        -t|--time)
-            RUNTIME="$2"
-            shift 2
-            ;;
-        -b|--batch)
-            BATCH_SIZE="$2"
-            shift 2
-            ;;
-        -r|--rate)
-            REQUEST_RATE="$2"
-            shift 2
-            ;;
-        -s|--size)
-            PAYLOAD_SIZE="$2"
-            shift 2
-            ;;
-        -i|--ip)
-            IP_PREFIX="$2"
-            shift 2
-            ;;
-        -v|--verbose)
-            VERBOSE=true
-            shift
-            ;;
-        -h|--help)
-            echo "Usage: $0 [options]"
-            echo ""
-            echo "Options:"
-            echo "  -f, --faults F       Number of Byzantine faults to tolerate (default: $F)"
-            echo "  -c, --clients N      Number of clients (default: $CLIENTS)"
-            echo "  -t, --time SEC       Runtime in seconds (default: $RUNTIME)"
-            echo "  -b, --batch SIZE     Batch size (default: $BATCH_SIZE)"
-            echo "  -
+pkill zyzzyva-server
+pkill zyzzyva-client
+rm -rf ./logs/
+rm -rf ./experiment_results
+mkdir -p logs
+mkdir -p experiment_results
+
+# Start 4 replica servers (for f=1)
+for ((i=0; i<$N; i++)); do
+    ./bin/zyzzyva-server -id $i -type server -batch-size 10 > logs/server_${i}.log 2>&1 &
+    SERVER_PIDS+=($!)
+done
+
+# Give servers time to initialize
+sleep 3
+
+# Start client
+./bin/zyzzyva-client -id $N -type client -primary 0 -rate 100 -payload-size 64 > logs/client_${N}.log 2>&1 &
+CLIENT_PID=$!
+
+# Run for 60 seconds
+sleep 60
+
+mv client_*_stats.json ./experiment_results/
+python3 analyze_results.py experiment_results/
+# Stop all processes
+kill ${SERVER_PIDS[@]} $CLIENT_PID 2>/dev/null || true

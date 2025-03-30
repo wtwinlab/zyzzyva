@@ -14,7 +14,7 @@ import (
 var Priv []*rsa.PrivateKey
 var Pub []*rsa.PublicKey
 
-var KeyDir = "../../keys"
+var KeyDir = "/users/tianwen/go/src/github.com/HB/zyzzyva/deployments/keys"
 
 func InitKeys(id int) {
 	Priv = make([]*rsa.PrivateKey, N+M)

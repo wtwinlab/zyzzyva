@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	n := flag.Int("n", 0, "Key num to be generated")
+	n := flag.Int("n", 5, "Key num to be generated")
 	d := flag.String("dir", ".", "Key dir to store output")
 	flag.Parse()
 	fmt.Println(*n)

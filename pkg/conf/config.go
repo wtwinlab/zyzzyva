@@ -104,7 +104,7 @@ func GetReqAddr(id int) string {
 }
 
 func GetListenAddr(id int) string {
-	return fmt.Sprintf(":%d", BasePort)
+	return fmt.Sprintf(":%d", BasePort+id)
 }
 
 // Other utility functions
